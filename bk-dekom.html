@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Smartboard Game: Dekomposisi Kota Pintar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-space: #070B14;
+      --panel-bg: rgba(15, 23, 42, 0.88);
+      --border-glow: rgba(56, 189, 248, 0.35);
+      --traffic-color: #EF4444;
+      --fleet-color: #F59E0B;
+      --med-color: #10B981;
+      --trash-color: #64748B;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-space);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(239, 68, 68, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.12) 0%, transparent 40%);
+    }
+
+    /* Top HUD / Smartboard Header */
+    header {
+      padding: 1rem 1.5rem;
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      border-bottom: 2px solid var(--border-glow);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .brand-icon {
+      font-size: 2rem;
+      padding: 0.3rem 0.6rem;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid var(--border-glow);
+      border-radius: 12px;
+    }
+
+    .brand-title h1 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #38BDF8, #A78BFA);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-title p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .hud-stats {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-badge {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 0.5rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 85px;
+    }
+
+    .stat-badge .lbl {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-badge .val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #38BDF8;
+    }
+
+    .btn-action {
+      background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+      border: none;
+      color: white;
+      padding: 0.75rem 1.4rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-action:active {
+      transform: scale(0.96);
+    }
+
+    /* Mission Alert Bar */
+    .mission-bar {
+      margin: 1rem 1.5rem;
+      background: linear-gradient(90deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.9));
+      border: 2px solid #EF4444;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);
+      border-radius: 16px;
+      padding: 0.9rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+
+    .giant-problem-title {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .phase-pill {
+      background: #8B5CF6;
+      color: #FFFFFF;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    /* Main Decomposition Workspace */
+    .game-arena {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr;
+      gap: 1.25rem;
+      padding: 0 1.5rem 1.5rem 1.5rem;
+      flex: 1;
+    }
+
+    @media (max-width: 1024px) {
+      .game-arena {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card-panel {
+      background: var(--panel-bg);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Left: Incoming Queue of Unclassified Subproblems */
+    .subproblem-card {
+      background: linear-gradient(145deg, #1E293B, #0F172A);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      padding: 1rem 1.1rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .subproblem-card:hover {
+      border-color: #38BDF8;
+      transform: translateY(-2px);
+    }
+
+    .subproblem-card.selected-problem {
+      border-color: #F59E0B;
+      background: rgba(245, 158, 11, 0.15);
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.4);
+    }
+
+    /* Right: 3 Sub-system Buckets + 1 Abstraction Trash Bin */
+    .subsystem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      flex: 1;
+    }
+
+    @media (max-width: 600px) {
+      .subsystem-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .bucket-card {
+      background: rgba(0, 0, 0, 0.4);
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-height: 180px;
+    }
+
+    .bucket-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .bucket-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.6rem;
+    }
+
+    .bucket-items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      flex: 1;
+    }
+
+    .mini-badge {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 0.35rem 0.6rem;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-left: 3px solid #38BDF8;
+    }
+
+    .btn-solve-subsystem {
+      margin-top: 0.6rem;
+      background: #10B981;
+      border: none;
+      color: #070B14;
+      font-weight: 800;
+      font-size: 0.8rem;
+      padding: 0.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      display: none;
+    }
+
+    /* Toast */
+    .toast-feedback {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(120px);
+      background: #1E293B;
+      border: 2px solid #38BDF8;
+      color: white;
+      padding: 0.9rem 1.6rem;
+      border-radius: 999px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0;
+    }
+
+    .toast-feedback.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .toast-feedback.error {
+      border-color: #EF4444;
+      background: #450A0A;
+      color: #FCA5A5;
+    }
+
+    .toast-feedback.success {
+      border-color: #10B981;
+      background: #064E3B;
+      color: #6EE7B7;
+    }
+
+    /* Modal Pop-up */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.85);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-box {
+      background: #0F172A;
+      border: 2px solid var(--border-glow);
+      border-radius: 24px;
+      max-width: 520px;
+      width: 100%;
+      padding: 2.2rem;
+      text-align: center;
+      transform: scale(0.92);
+      transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.active .modal-box {
+      transform: scale(1);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Smartboard Header -->
+  <header>
+    <div class="brand-title">
+      <div class="brand-icon">🏙️</div>
+      <div>
+        <h1>OPERASI BEDAH MASALAH: SMART CITY</h1>
+        <p>Smartboard Game • Berpikir Komputasional: Fondasi Dekomposisi</p>
+      </div>
+    </div>
+
+    <div class="hud-stats">
+      <div class="stat-badge">
+        <span class="lbl">Sisa Waktu</span>
+        <span class="val" id="hudTimer">75s</span>
+      </div>
+      <div class="stat-badge">
+        <span class="lbl">Sub-Masalah Diurai</span>
+        <span class="val" id="hudResolved">0/9</span>
+      </div>
+      <div class="stat-badge">
+        <span class="lbl">Skor Logika</span>
+        <span class="val" id="hudScore">000</span>
+      </div>
+      <div class="stat-badge">
+        <span class="lbl">Kekeliruan</span>
+        <span class="val" id="hudMistakes" style="color: #F87171;">0</span>
+      </div>
+      <button class="btn-action" onclick="toggleGameStart()" id="btnStartPause">
+        ▶️ Mulai Misi
+      </button>
+      <button class="btn-action" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);" onclick="resetGameArena()">
+        🔄 Reset
+      </button>
+    </div>
+  </header>
+
+  <!-- Giant Problem Alert Strip -->
+  <div class="mission-bar">
+    <div class="giant-problem-title">
+      <span>🚨 KONDISI KOTA LUMPUH:</span>
+      <span style="color: #FCA5A5;" id="giantProblemText">"Sistem Transportasi & Logistik Darurat Mogok Total!"</span>
+    </div>
+    <div class="phase-pill">
+      TAHAP: DEKOMPOSISI STRUKTUR MASALAH
+    </div>
+  </div>
+
+  <!-- Main Game Arena -->
+  <main class="game-arena">
+
+    <!-- 1. LEFT PANEL: Raw Problem Pile (To Be Decomposed) -->
+    <div class="card-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+        <div>
+          <h2 style="font-size: 1.1rem; font-weight: 800; color: #7DD3FC;">DAFTAR ISU KOMPONEN</h2>
+          <p style="font-size: 0.72rem; color: var(--text-muted);">Ketuk satu isu, lalu tempatkan ke cabang sub-sistem yang tepat!</p>
+        </div>
+        <span style="font-size: 0.75rem; background: rgba(56, 189, 248, 0.2); color: #38BDF8; padding: 0.25rem 0.6rem; border-radius: 8px; font-weight: 700;">RAW DATA</span>
+      </div>
+
+      <div id="unassignedContainer" style="overflow-y: auto; max-height: 460px; padding-right: 4px;">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+
+    <!-- 2. RIGHT PANEL: 3 Decomposed Sub-systems + Abstraction Bin -->
+    <div class="card-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+        <div>
+          <h2 style="font-size: 1.1rem; font-weight: 800; color: #A78BFA;">STRUKTUR SUB-SISTEM (HASIL DEKOMPOSISI)</h2>
+          <p style="font-size: 0.72rem; color: var(--text-muted);">Sentuh kotak target untuk menempatkan kartu yang sedang dipilih.</p>
+        </div>
+      </div>
+
+      <div class="subsystem-grid">
+
+        <!-- SUB-SYSTEM 1: TRAFFIC LIGHTS -->
+        <div class="bucket-card" id="bucketTRAFFIC" onclick="assignToBucket('TRAFFIC')" style="border-color: #EF4444;">
+          <div>
+            <div class="bucket-header">
+              <span style="font-weight: 800; color: #F87171; font-size: 0.95rem;">🚦 1. Jaringan Lampu Lalin</span>
+              <span style="font-size: 0.7rem; color: var(--text-muted);" id="countTRAFFIC">0/2</span>
+            </div>
+            <div class="bucket-items" id="itemsTRAFFIC"></div>
+          </div>
+          <button class="btn-solve-subsystem" id="btnSolveTRAFFIC" onclick="event.stopPropagation(); solveSubsystem('TRAFFIC')">
+            ⚡ EKSEKUSI SOLUSI (DIVIDE & CONQUER)
+          </button>
+        </div>
+
+        <!-- SUB-SYSTEM 2: BUS FLEET -->
+        <div class="bucket-card" id="bucketFLEET" onclick="assignToBucket('FLEET')" style="border-color: #F59E0B;">
+          <div>
+            <div class="bucket-header">
+              <span style="font-weight: 800; color: #FCD34D; font-size: 0.95rem;">🚌 2. Armada Bus Kota</span>
+              <span style="font-size: 0.7rem; color: var(--text-muted);" id="countFLEET">0/2</span>
+            </div>
+            <div class="bucket-items" id="itemsFLEET"></div>
+          </div>
+          <button class="btn-solve-subsystem" id="btnSolveFLEET" onclick="event.stopPropagation(); solveSubsystem('FLEET')">
+            ⚡ EKSEKUSI SOLUSI (DIVIDE & CONQUER)
+          </button>
+        </div>
+
+        <!-- SUB-SYSTEM 3: MEDICAL LOGISTICS -->
+        <div class="bucket-card" id="bucketMED" onclick="assignToBucket('MED')" style="border-color: #10B981;">
+          <div>
+            <div class="bucket-header">
+              <span style="font-weight: 800; color: #6EE7B7; font-size: 0.95rem;">📦 3. Gudang Paket Medis</span>
+              <span style="font-size: 0.7rem; color: var(--text-muted);" id="countMED">0/2</span>
+            </div>
+            <div class="bucket-items" id="itemsMED"></div>
+          </div>
+          <button class="btn-solve-subsystem" id="btnSolveMED" onclick="event.stopPropagation(); solveSubsystem('MED')">
+            ⚡ EKSEKUSI SOLUSI (DIVIDE & CONQUER)
+          </button>
+        </div>
+
+        <!-- ABSTRACTION TRASH (Distractors) -->
+        <div class="bucket-card" id="bucketTRASH" onclick="assignToBucket('TRASH')" style="border-color: #64748B;">
+          <div>
+            <div class="bucket-header">
+              <span style="font-weight: 800; color: #94A3B8; font-size: 0.95rem;">🗑️ Detail Tidak Relevan (Abstraksi)</span>
+              <span style="font-size: 0.7rem; color: var(--text-muted);" id="countTRASH">0/3</span>
+            </div>
+            <div class="bucket-items" id="itemsTRASH"></div>
+          </div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-top: 0.5rem;">
+            Singkirkan hal yang bukan penyebab krisis!
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Interactive Feedback Toast -->
+  <div class="toast-feedback" id="toastBox">
+    <span id="toastIcon">🔔</span>
+    <span id="toastMessage">Pesan Sistem</span>
+  </div>
+
+  <!-- End Game Modal -->
+  <div class="modal-overlay" id="endGameModal">
+    <div class="modal-box">
+      <div style="font-size: 3.5rem; margin-bottom: 0.6rem;">🏆</div>
+      <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem;" id="endTitle">Kota Pintar Kembali Beroperasi!</h3>
+      <p style="color: #CBD5E1; font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.5;" id="endDesc">
+        Dengan memecah masalah raksasa menjadi sub-sistem terpisah (Dekomposisi), tim kalian berhasil menyelesaikan krisis tanpa kewalahan!
+      </p>
+
+      <div style="background: rgba(255,255,255,0.05); padding: 1.2rem; border-radius: 16px; margin-bottom: 1.5rem; display: flex; justify-content: space-around;">
+        <div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">SKOR AKHIR</div>
+          <div style="font-size: 1.8rem; font-weight: 800; color: #38BDF8;" id="modalScore">0</div>
+        </div>
+        <div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">KESALAHAN</div>
+          <div style="font-size: 1.8rem; font-weight: 800; color: #F87171;" id="modalMistakes">0</div>
+        </div>
+      </div>
+
+      <button class="btn-action" style="width: 100%; justify-content: center;" onclick="closeModalAndRestart()">
+        🔄 Mainkan Skenario Baru
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /* GAME LOGIC & DECOMPOSITION DATA */
+    let isRunning = false;
+    let timer = 75;
+    let timerInterval = null;
+    let score = 0;
+    let mistakes = 0;
+    let selectedIssue = null;
+
+    // The Pool of Subproblems & Distractors (Abstraction)
+    const initialIssues = [
+      { id: 1, text: "Durasi Timer Lampu Hijau Macet Total", target: "TRAFFIC", icon: "⏱️" },
+      { id: 2, text: "Sensor Persimpangan Utama Offline", target: "TRAFFIC", icon: "📡" },
+      { id: 3, text: "Tangki Solar 5 Bus Kosong", target: "FLEET", icon: "⛽" },
+      { id: 4, text: "Jadwal Roster Pengemudi Bentrok", target: "FLEET", icon: "📋" },
+      { id: 5, text: "Sortir Vaksin Darurat Tertukar di Gudang", target: "MED", icon: "💉" },
+      { id: 6, text: "Kapasitas Kontainer Pendingin Penuh", target: "MED", icon: "🧊" },
+      // Distractors (To be discarded to Abstraction Bin)
+      { id: 7, text: "Mural Halte Bus Pudar (Bukan Krisis)", target: "TRASH", icon: "🎨" },
+      { id: 8, text: "Desain Seragam Baru Petugas Parkir", target: "TRASH", icon: "👕" },
+      { id: 9, text: "Papan Reklame Iklan Minuman Berkedip", target: "TRASH", icon: "💡" }
+    ];
+
+    let currentUnassigned = [];
+    let buckets = {
+      TRAFFIC: [],
+      FLEET: [],
+      MED: [],
+      TRASH: []
+    };
+
+    let resolvedSubsystems = {
+      TRAFFIC: false,
+      FLEET: false,
+      MED: false
+    };
+
+    // Web Audio API Synthesizer
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playTone(freq, duration, type = 'sine') {
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        console.warn('Audio blocked', e);
+      }
+    }
+
+    function soundSuccess() {
+      playTone(523.25, 0.1);
+      setTimeout(() => playTone(659.25, 0.12), 100);
+      setTimeout(() => playTone(783.99, 0.25), 200);
+    }
+
+    function soundError() {
+      playTone(150, 0.2, 'sawtooth');
+      setTimeout(() => playTone(110, 0.3, 'sawtooth'), 120);
+    }
+
+    function soundClick() {
+      playTone(440, 0.08);
+    }
+
+    /* RENDER FUNCTIONS */
+    function renderArena() {
+      // 1. Render unassigned list
+      const listEl = document.getElementById('unassignedContainer');
+      listEl.innerHTML = '';
+
+      if (currentUnassigned.length === 0) {
+        listEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem; font-size: 0.85rem;">
+          ✨ Semua isu telah berhasil didekomposisi ke dalam sub-sistem masing-masing!
+        </div>`;
+      } else {
+        currentUnassigned.forEach(item => {
+          const isSelected = selectedIssue && selectedIssue.id === item.id;
+          const card = document.createElement('div');
+          card.className = `subproblem-card ${isSelected ? 'selected-problem' : ''}`;
+          card.onclick = () => selectIssue(item);
+          card.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span style="font-size: 1.3rem;">${item.icon}</span>
+              <span style="font-size: 0.85rem; font-weight: 700;">${item.text}</span>
+            </div>
+            <span style="font-size: 0.65rem; background: rgba(255,255,255,0.08); padding: 0.2rem 0.5rem; border-radius: 6px;">
+              ${isSelected ? 'DIPILIH 🎯' : 'PILIH'}
+            </span>
+          `;
+          listEl.appendChild(card);
+        });
+      }
+
+      // 2. Render buckets
+      ['TRAFFIC', 'FLEET', 'MED', 'TRASH'].forEach(bKey => {
+        const itemsContainer = document.getElementById(`items${bKey}`);
+        itemsContainer.innerHTML = '';
+        buckets[bKey].forEach(it => {
+          const badge = document.createElement('div');
+          badge.className = 'mini-badge';
+          badge.innerText = `${it.icon} ${it.text}`;
+          itemsContainer.appendChild(badge);
+        });
+
+        // Update counts
+        const maxNeeded = bKey === 'TRASH' ? 3 : 2;
+        document.getElementById(`count${bKey}`).innerText = `${buckets[bKey].length}/${maxNeeded}`;
+
+        // If ready to solve
+        const btnSolve = document.getElementById(`btnSolve${bKey}`);
+        if (btnSolve) {
+          if (buckets[bKey].length === 2 && !resolvedSubsystems[bKey]) {
+            btnSolve.style.display = 'block';
+          } else {
+            btnSolve.style.display = 'none';
+          }
+        }
+      });
+
+      updateHUD();
+    }
+
+    function selectIssue(item) {
+      if (!isRunning) {
+        showToast('Tekan Mulai Misi terlebih dahulu!', 'warn');
+        return;
+      }
+      selectedIssue = item;
+      soundClick();
+      renderArena();
+      showToast(`Isu dipilih: "${item.text}". Tempatkan ke sub-sistem yang sesuai!`, 'info');
+    }
+
+    function assignToBucket(bucketKey) {
+      if (!isRunning) {
+        showToast('Tekan Mulai Misi terlebih dahulu!', 'warn');
+        return;
+      }
+      if (!selectedIssue) {
+        showToast('Pilih salah satu isu di panel kiri terlebih dahulu!', 'warn');
+        return;
+      }
+
+      // Validate Decomposition
+      if (selectedIssue.target === bucketKey) {
+        // Correct Classification
+        soundSuccess();
+        buckets[bucketKey].push(selectedIssue);
+        currentUnassigned = currentUnassigned.filter(x => x.id !== selectedIssue.id);
+        score += 80;
+        showToast(`✅ TEPAT! Isu didekomposisi ke sub-sistem yang benar! (+80 Poin)`, 'success');
+        selectedIssue = null;
+        renderArena();
+        checkTotalVictory();
+      } else {
+        // Decomposition Error!
+        mistakes++;
+        score = Math.max(0, score - 20);
+        soundError();
+        updateHUD();
+        showToast(`❌ SALAH SUB-SISTEM! Isu ini bukan bagian dari modul tersebut!`, 'error');
+      }
+    }
+
+    function solveSubsystem(bKey) {
+      if (!isRunning) return;
+      soundSuccess();
+      resolvedSubsystems[bKey] = true;
+      score += 100;
+      
+      const card = document.getElementById(`bucket${bKey}`);
+      card.style.background = 'rgba(16, 185, 129, 0.2)';
+      card.style.borderStyle = 'solid';
+      card.style.borderColor = '#10B981';
+
+      showToast(`🎉 SUB-SOLUSI BERHASIL: Modul ${bKey} kini kembali normal! (+100 Poin)`, 'success');
+      renderArena();
+      checkTotalVictory();
+    }
+
+    function checkTotalVictory() {
+      const allDecomposed = currentUnassigned.length === 0;
+      const allSolved = resolvedSubsystems.TRAFFIC && resolvedSubsystems.FLEET && resolvedSubsystems.MED;
+
+      if (allDecomposed && allSolved) {
+        setTimeout(() => {
+          endGame();
+        }, 500);
+      }
+    }
+
+    function updateHUD() {
+      const resolvedCount = 9 - currentUnassigned.length;
+      document.getElementById('hudTimer').innerText = `${timer}s`;
+      document.getElementById('hudResolved').innerText = `${resolvedCount}/9`;
+      document.getElementById('hudScore').innerText = String(score).padStart(3, '0');
+      document.getElementById('hudMistakes').innerText = mistakes;
+    }
+
+    /* GAME LOOP CONTROLS */
+    function toggleGameStart() {
+      if (isRunning) {
+        pauseGame();
+      } else {
+        startGame();
+      }
+    }
+
+    function startGame() {
+      isRunning = true;
+      document.getElementById('btnStartPause').innerHTML = '⏸️ Jeda Misi';
+      document.getElementById('btnStartPause').style.background = '#D97706';
+
+      timerInterval = setInterval(() => {
+        timer--;
+        updateHUD();
+        if (timer <= 0) {
+          endGame();
+        }
+      }, 1000);
+
+      showToast('🚀 Misi Dekomposisi Dimulai! Urai masalah kota bersama tim!', 'success');
+    }
+
+    function pauseGame() {
+      isRunning = false;
+      clearInterval(timerInterval);
+      document.getElementById('btnStartPause').innerHTML = '▶️ Lanjutkan';
+      document.getElementById('btnStartPause').style.background = '#2563EB';
+      showToast('Misi dijeda.', 'info');
+    }
+
+    function endGame() {
+      isRunning = false;
+      clearInterval(timerInterval);
+      soundSuccess();
+
+      document.getElementById('modalScore').innerText = score;
+      document.getElementById('modalMistakes').innerText = mistakes;
+
+      const isWin = currentUnassigned.length === 0 && resolvedSubsystems.TRAFFIC && resolvedSubsystems.FLEET && resolvedSubsystems.MED;
+      if (isWin) {
+        document.getElementById('endTitle').innerText = "Kota Pintar Berhasil Diselamatkan!";
+        document.getElementById('endDesc').innerText = "Kalian membuktikan bahwa persoalan raksasa yang tampak rumit menjadi mudah diselesaikan saat dipecah ke dalam sub-sistem kecil (Dekomposisi)!";
+      } else {
+        document.getElementById('endTitle').innerText = "Waktu Operasi Habis!";
+        document.getElementById('endDesc').innerText = "Evaluasi kembali cabang dekomposisi dan pastikan distraktor berhasil dipisahkan!";
+      }
+
+      document.getElementById('endGameModal').classList.add('active');
+    }
+
+    function closeModalAndRestart() {
+      document.getElementById('endGameModal').classList.remove('active');
+      resetGameArena();
+    }
+
+    function resetGameArena() {
+      isRunning = false;
+      clearInterval(timerInterval);
+      timer = 75;
+      score = 0;
+      mistakes = 0;
+      selectedIssue = null;
+      currentUnassigned = JSON.parse(JSON.stringify(initialIssues));
+      buckets = { TRAFFIC: [], FLEET: [], MED: [], TRASH: [] };
+      resolvedSubsystems = { TRAFFIC: false, FLEET: false, MED: false };
+
+      ['TRAFFIC', 'FLEET', 'MED'].forEach(bKey => {
+        const card = document.getElementById(`bucket${bKey}`);
+        card.style.background = 'rgba(0, 0, 0, 0.4)';
+        card.style.borderStyle = 'dashed';
+      });
+
+      document.getElementById('btnStartPause').innerHTML = '▶️ Mulai Misi';
+      document.getElementById('btnStartPause').style.background = '#2563EB';
+
+      renderArena();
+      showToast('Arena simulasi kota direset ke kondisi awal.', 'info');
+    }
+
+    let toastTimeout = null;
+    function showToast(msg, type = 'info') {
+      const box = document.getElementById('toastBox');
+      const icon = document.getElementById('toastIcon');
+      const text = document.getElementById('toastMessage');
+
+      box.className = 'toast-feedback';
+      if (type === 'error') {
+        box.classList.add('error');
+        icon.innerText = '⚠️';
+      } else if (type === 'success') {
+        box.classList.add('success');
+        icon.innerText = '✨';
+      } else if (type === 'warn') {
+        icon.innerText = '💡';
+      } else {
+        icon.innerText = 'ℹ️';
+      }
+
+      text.innerText = msg;
+      box.classList.add('show');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        box.classList.remove('show');
+      }, 2400);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      resetGameArena();
+    });
+  </script>
+</body>
+</html>
